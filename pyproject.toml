@@ -1,47 +1,67 @@
-[tool.poetry]
-name = "nonebot_plugin_memes"
-version = "0.8.1"
-description = "Nonebot2 plugin for making memes"
-authors = ["meetwq <meetwq@gmail.com>"]
-license = "MIT"
+[project]
+name = "nonebot-plugin-memes"
+version = "0.7.11.post1"
+description = "真寻表情包制作插件，支持进程生成、超时、排队和图片限制"
+authors = [{name = "meetwq", email = "meetwq@gmail.com"}]
+maintainers = [{name = "lumen"}]
+license = {text = "MIT"}
 readme = "README.md"
-homepage = "https://github.com/noneplugin/nonebot-plugin-memes"
-repository = "https://github.com/noneplugin/nonebot-plugin-memes"
+requires-python = ">=3.10"
+dependencies = [
+    "nonebot2>=2.3.3,<3",
+    "nonebot-adapter-onebot>=2.3.1,<3",
+    "nonebot-plugin-alconna==0.62.0",
+    "nonebot-plugin-waiter>=0.8.1,<0.9",
+    "nonebot-plugin-session>=0.3.2,<0.4",
+    "nonebot-plugin-userinfo>=0.2.6,<0.3",
+    "nonebot-plugin-localstore>=0.7.4,<0.8",
+    "nonebot-plugin-session-orm>=0.2.2,<0.3",
+    "nonebot-plugin-orm>=0.8.2,<0.9",
+    "meme-generator==0.1.14",
+    "httpx>=0.28.1,<0.29",
+    "pillow>=10,<11",
+    "pypinyin>=0.51,<1",
+    "pyyaml>=6,<7",
+    "rapidfuzz>=3.9,<4",
+    "matplotlib>=3.7,<3.11",
+    "python-dateutil>=2.8.2,<3",
+    "sqlalchemy>=2.0,<2.1",
+    "alembic>=1.13,<2"
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-nonebot2 = "^2.3.0"
-nonebot-plugin-alconna = ">=0.46.3,<1.0.0"
-nonebot-plugin-uninfo = ">=0.6.1,<1.0.0"
-nonebot-plugin-localstore = ">=0.6.0,<1.0.0"
-nonebot-plugin-orm = ">=0.7.0,<1.0.0"
-meme-generator = "^0.2.0"
-pyyaml = "^6.0"
-python-dateutil = "^2.8.2"
-filetype = "^1.2.0"
+[project.urls]
+Homepage = "https://github.com/lumenmai/nonebot-plugin-memes"
+Repository = "https://github.com/lumenmai/nonebot-plugin-memes"
+Upstream = "https://github.com/MemeCrafters/nonebot-plugin-memes"
+Issues = "https://github.com/lumenmai/nonebot-plugin-memes/issues"
 
-[tool.poetry.group.dev.dependencies]
-nonebot2 = { extras = ["fastapi", "httpx"], version = "^2.3.0" }
-nonebot-plugin-orm = { extras = ["default"], version = ">=0.7.0,<1.0.0" }
-nonebot-adapter-onebot = "^2.2.0"
-
-[tool.nonebot]
-plugins = ["nonebot_plugin_memes"]
-
-[tool.pyright]
-pythonVersion = "3.9"
-pythonPlatform = "All"
-defineConstant = { PYDANTIC_V2 = true }
-typeCheckingMode = "basic"
-
-[tool.ruff]
-line-length = 88
-target-version = "py39"
-
-[tool.ruff.lint]
-select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
-ignore = ["E402", "C901", "UP037"]
+[project.optional-dependencies]
+dev = [
+    "nonebot2[fastapi,httpx]>=2.3.3,<3",
+    "aiosqlite>=0.20,<1",
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.25,<0.26",
+    "pytest-mock>=3.14,<4",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nonebot_plugin_memes"]
+
+[tool.hatch.build.targets.sdist]
+include = ["nonebot_plugin_memes", "tests", "README.md", "LICENSE", "CHANGELOG.md", "requirements.txt", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:nonebug"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["F"]

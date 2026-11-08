@@ -2,29 +2,22 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 
 from dateutil.relativedelta import relativedelta
-from meme_generator.tools import MemeStatisticsType, render_meme_statistics
-from nonebot.log import logger
 from nonebot.matcher import Matcher
-from nonebot.utils import run_sync
 from nonebot_plugin_alconna import (
     Alconna,
     AlconnaQuery,
     Args,
-    Image,
     Option,
     Query,
     UniMessage,
     on_alconna,
     store_true,
 )
-from nonebot_plugin_uninfo import Uninfo
+from nonebot_plugin_session import EventSession, SessionIdType
 
 from ..manager import meme_manager
-from ..recorder import (
-    SessionIdType,
-    get_meme_generation_records,
-    get_meme_generation_times,
-)
+from ..plot import plot_duration_counts, plot_meme_and_duration_counts
+from ..recorder import get_meme_generation_records, get_meme_generation_times
 from ..utils import add_timezone
 from .utils import find_meme
 
@@ -105,7 +98,7 @@ statistics_matcher.shortcut(
 @statistics_matcher.handle()
 async def _(
     matcher: Matcher,
-    session: Uninfo,
+    session: EventSession,
     meme_name: Optional[str] = None,
     query_global: Query[bool] = AlconnaQuery("global.value", False),
     query_my: Query[bool] = AlconnaQuery("my.value", False),
@@ -196,22 +189,22 @@ async def _(
             return (time + td).strftime(fmt)
         return time.strftime(fmt)
 
-    time_counts: list[tuple[str, int]] = []
+    duration_counts: dict[str, int] = {}
     stop = start + td
     count = 0
     key = fmt_time(start)
     for time in meme_times:
         while time >= stop:
-            time_counts.append((key, count))
+            duration_counts[key] = count
             key = fmt_time(stop)
             stop += td
             count = 0
         count += 1
-    time_counts.append((key, count))
+    duration_counts[key] = count
     while stop <= now:
         key = fmt_time(stop)
         stop += td
-        time_counts.append((key, 0))
+        duration_counts[key] = 0
 
     key_counts: dict[str, int] = {}
     for key in meme_keys:
@@ -220,41 +213,17 @@ async def _(
 
     if meme:
         title = (
-            f"表情“{'/'.join(meme.info.keywords)}”{humanized}调用统计"
+            f"表情“{'/'.join(meme.keywords)}”{humanized}调用统计"
             f"（总调用次数为 {key_counts.get(meme.key, 0)}）"
         )
-        output = await run_sync(render_meme_statistics)(
-            title, MemeStatisticsType.TimeCount, time_counts
-        )
-        if isinstance(output, bytes):
-            await UniMessage.image(raw=output).finish()
-        else:
-            logger.warning(f"表情调用统计图生成失败：{output.error}")
-
+        output = await plot_duration_counts(duration_counts, title)
     else:
         title = f"{humanized}表情调用统计（总调用次数为 {sum(key_counts.values())}）"
-        meme_counts: list[tuple[str, int]] = []
+        meme_counts: dict[str, int] = {}
         for key, count in key_counts.items():
             if meme := meme_manager.get_meme(key):
-                meme_counts.append(("/".join(meme.info.keywords), count))
-
-        msg = UniMessage()
-
-        output = await run_sync(render_meme_statistics)(
-            title, MemeStatisticsType.MemeCount, meme_counts
+                meme_counts["/".join(meme.keywords)] = count
+        output = await plot_meme_and_duration_counts(
+            meme_counts, duration_counts, title
         )
-        if isinstance(output, bytes):
-            msg += Image(raw=output)
-        else:
-            logger.warning(f"表情调用统计图生成失败：{output.error}")
-
-        output = await run_sync(render_meme_statistics)(
-            title, MemeStatisticsType.TimeCount, time_counts
-        )
-        if isinstance(output, bytes):
-            msg += Image(raw=output)
-        else:
-            logger.warning(f"表情调用统计图生成失败：{output.error}")
-
-        if msg:
-            await msg.finish()
+    await UniMessage.image(raw=output).send()
